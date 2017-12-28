@@ -13,10 +13,10 @@ type CMap struct {
 	EncodingRecords []*EncodingRecord
 }
 
-func parseCMap(f *os.File, tr *TableRecord) (cm *CMap, err error) {
+func parseCMap(f *os.File, offset uint32) (cm *CMap, err error) {
 	cm = &CMap{}
 	cm.Header = &CMapHeader{}
-	f.Seek(int64(tr.Offset), 0)
+	f.Seek(int64(offset), 0)
 	err = binary.Read(f, binary.BigEndian, cm.Header)
 	if err != nil {
 		return
@@ -39,7 +39,7 @@ func parseCMap(f *os.File, tr *TableRecord) (cm *CMap, err error) {
 		cm.EncodingRecords[i] = er
 	}
 	for _, er := range cm.EncodingRecords {
-		f.Seek(int64(tr.Offset)+int64(er.Offset), 0)
+		f.Seek(int64(offset)+int64(er.Offset), 0)
 		er.Subtable, err = parseEncodingRecordSubtable(f)
 		if err != nil {
 			return
