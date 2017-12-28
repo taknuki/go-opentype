@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"fmt"
 	"os"
 )
 
@@ -79,12 +78,4 @@ func parseTableRecord(f *os.File, numTables uint16) (trs map[string]*TableRecord
 		trs[tr.Tag.String()] = tr
 	}
 	return
-}
-
-func getTableRecord(trs map[string]*TableRecord, tag string) (*TableRecord, error) {
-	tr, ok := trs[tag]
-	if !ok {
-		return nil, fmt.Errorf("%s table recors is not found", tag)
-	}
-	return tr, nil
 }

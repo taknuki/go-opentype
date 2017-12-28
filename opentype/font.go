@@ -7,8 +7,17 @@ import (
 
 // Font is the opentype font.
 type Font struct {
-	offsetTable *OffsetTable
-	CMap        *CMap
+	offsetTable  *OffsetTable
+	tableRecords map[string]*TableRecord
+	CMap         *CMap
+}
+
+func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
+	tr, ok := f.tableRecords[tag]
+	if !ok {
+		return nil, fmt.Errorf("%s table recors is not found", tag)
+	}
+	return tr, nil
 }
 
 // ParseFont returns the Font instance from the font file.
@@ -51,11 +60,11 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
-	trs, err := parseTableRecord(f, font.offsetTable.NumTables)
+	font.tableRecords, err = parseTableRecord(f, font.offsetTable.NumTables)
 	if err != nil {
 		return
 	}
-	tr, err := getTableRecord(trs, "cmap")
+	tr, err := font.getTableRecord("cmap")
 	if err != nil {
 		return
 	}
