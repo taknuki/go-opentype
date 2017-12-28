@@ -3,6 +3,7 @@ package opentype
 import (
 	"encoding/binary"
 	"os"
+	"time"
 )
 
 // Fixed is a 32-bit signed fixed-point number (16.16)
@@ -10,6 +11,10 @@ type Fixed int32
 
 // LongDateTime is a Date represented in number of seconds since 12:00 midnight, January 1, 1904. The value is represented as a signed 64-bit integer.
 type LongDateTime int64
+
+func (t LongDateTime) value() time.Time {
+	return time.Date(1904, 1, 1, 0, 0, 0, 0, time.UTC).Add(time.Duration(t) * time.Second)
+}
 
 // Tag is a array of four uint8s (length = 32 bits) used to identify a script, language system, feature, or baseline
 type Tag uint32
