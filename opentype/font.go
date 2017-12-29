@@ -17,6 +17,7 @@ type Font struct {
 	Hmtx         *Hmtx
 	Cvt          *Cvt
 	Fpgm         *Fpgm
+	Prep         *Prep
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -67,6 +68,14 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 		return
 	}
 	font.Fpgm, err = parseFpgm(f, fpgm.Offset, fpgm.Length)
+	if err != nil {
+		return
+	}
+	prep, err := font.getTableRecord("prep")
+	if err != nil {
+		return
+	}
+	font.Prep, err = parsePrep(f, prep.Offset, prep.Length)
 	if err != nil {
 		return
 	}
