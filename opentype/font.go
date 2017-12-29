@@ -13,6 +13,7 @@ type Font struct {
 	Head         *Head
 	Hhea         *Hhea
 	Maxp         *Maxp
+	Hmtx         *Hmtx
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -96,6 +97,14 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return
 	}
 	font.Maxp, err = parseMaxp(f, maxp.Offset)
+	if err != nil {
+		return
+	}
+	hmtx, err := font.getTableRecord("hmtx")
+	if err != nil {
+		return
+	}
+	font.Hmtx, err = parseHmtx(f, hmtx.Offset, font.Maxp.NumGlyphs, font.Hhea.NumberOfHMetrics)
 	if err != nil {
 		return
 	}
