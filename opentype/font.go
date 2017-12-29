@@ -15,12 +15,13 @@ type Font struct {
 	Hhea         *Hhea
 	Maxp         *Maxp
 	Hmtx         *Hmtx
+	Cvt          *Cvt
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
 	tr, ok := f.tableRecords[tag]
 	if !ok {
-		return nil, fmt.Errorf("%s table recors is not found", tag)
+		return nil, fmt.Errorf("%s table record is not found", tag)
 	}
 	return tr, nil
 }
@@ -49,7 +50,21 @@ func parseFont(f *os.File, offset int64) (*Font, error) {
 
 func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 	font, err = parseCommonTable(f)
-	// TODO TrueType specific
+	if err != nil {
+		return
+	}
+	cvt, err := font.getTableRecord("cvt ")
+	if err != nil {
+		return
+	}
+	font.Cvt, err = parseCvt(f, cvt.Offset, cvt.Length)
+	if err != nil {
+		return
+	}
+	for index, value := range font.Cvt.Values {
+		fmt.Printf("%d: %d\n", index, value)
+	}
+	fmt.Println(len(font.Cvt.Values))
 	return
 }
 
