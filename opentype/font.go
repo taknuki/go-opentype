@@ -12,6 +12,7 @@ type Font struct {
 	CMap         *CMap
 	Head         *Head
 	Hhea         *Hhea
+	Maxp         *Maxp
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -87,6 +88,14 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return
 	}
 	font.Hhea, err = parseHhea(f, hhea.Offset)
+	if err != nil {
+		return
+	}
+	maxp, err := font.getTableRecord("maxp")
+	if err != nil {
+		return
+	}
+	font.Maxp, err = parseMaxp(f, maxp.Offset)
 	if err != nil {
 		return
 	}
