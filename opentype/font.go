@@ -18,6 +18,7 @@ type Font struct {
 	Cvt          *Cvt
 	Fpgm         *Fpgm
 	Prep         *Prep
+	Loca         *Loca
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -76,6 +77,14 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 		return
 	}
 	font.Prep, err = parsePrep(f, prep.Offset, prep.Length)
+	if err != nil {
+		return
+	}
+	loca, err := font.getTableRecord("loca")
+	if err != nil {
+		return
+	}
+	font.Loca, err = parseLoca(f, loca.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
 	if err != nil {
 		return
 	}
