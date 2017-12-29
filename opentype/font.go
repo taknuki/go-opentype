@@ -16,6 +16,7 @@ type Font struct {
 	Maxp         *Maxp
 	Hmtx         *Hmtx
 	Cvt          *Cvt
+	Fpgm         *Fpgm
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -61,10 +62,14 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
-	for index, value := range font.Cvt.Values {
-		fmt.Printf("%d: %d\n", index, value)
+	fpgm, err := font.getTableRecord("fpgm")
+	if err != nil {
+		return
 	}
-	fmt.Println(len(font.Cvt.Values))
+	font.Fpgm, err = parseFpgm(f, fpgm.Offset, fpgm.Length)
+	if err != nil {
+		return
+	}
 	return
 }
 
