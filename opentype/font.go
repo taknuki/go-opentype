@@ -9,6 +9,7 @@ import (
 type Font struct {
 	offsetTable  *OffsetTable
 	tableRecords map[string]*TableRecord
+	Name         *Name
 	CMap         *CMap
 	Head         *Head
 	Hhea         *Hhea
@@ -65,6 +66,14 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return
 	}
 	font.tableRecords, err = parseTableRecord(f, font.offsetTable.NumTables)
+	if err != nil {
+		return
+	}
+	name, err := font.getTableRecord("name")
+	if err != nil {
+		return
+	}
+	font.Name, err = parseName(f, name.Offset)
 	if err != nil {
 		return
 	}
