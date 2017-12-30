@@ -77,6 +77,15 @@ func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 	return
 }
 
+func createOffsetTable(sfntVersion Tag, numTables uint16) *OffsetTable {
+	ot := &OffsetTable{
+		SfntVersion: sfntVersion,
+		NumTables:   numTables,
+	}
+	ot.refreshField()
+	return ot
+}
+
 const (
 	// OffsetTableLength : size of OffsetTable
 	OffsetTableLength = uint32(12)
