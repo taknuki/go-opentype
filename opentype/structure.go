@@ -71,19 +71,24 @@ func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 	return
 }
 
-func (o *OffsetTable) refreshField() {
+// Length returns the size(byte) of this table.
+func (ot *OffsetTable) Length() uint32 {
+	return 12
+}
+
+func (ot *OffsetTable) refreshField() {
 	es := uint16(0)
 	sr := uint16(1)
 	for {
-		if 1<<(es+1) > o.NumTables {
+		if 1<<(es+1) > ot.NumTables {
 			break
 		}
 		es = es + 1
 		sr = sr * 2
 	}
-	o.SearchRange = sr * 16
-	o.EntrySelector = es
-	o.RangeShift = o.NumTables*16 - o.SearchRange
+	ot.SearchRange = sr * 16
+	ot.EntrySelector = es
+	ot.RangeShift = ot.NumTables*16 - ot.SearchRange
 }
 
 // TableRecord is a OpenType table record.
