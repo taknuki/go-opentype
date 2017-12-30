@@ -32,6 +32,12 @@ func (t Tag) String() string {
 	return string(bytes)
 }
 
+// String2Tag creates Tag from string.
+func String2Tag(s string) Tag {
+	bytes := []byte(s)
+	return Tag(uint32(bytes[0])<<24 + uint32(bytes[1])<<16 + uint32(bytes[2])<<8 + uint32(bytes[3]))
+}
+
 const (
 	// SfntVersionTrueTypeOpenType : OpenType fonts that contain TrueType outlines.
 	SfntVersionTrueTypeOpenType = Tag(0x00010000)
