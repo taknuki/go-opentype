@@ -148,3 +148,9 @@ func padBlocks(length uint32) uint32 {
 	}
 	return q + 1
 }
+
+// All tables must begin on four-byte boundries, and any remaining space between tables is padded with zeros.
+func padSpace(w io.Writer, length uint32) error {
+	pad := padBlocks(length)*4 - length
+	return bWrite(w, make([]uint8, pad))
+}
