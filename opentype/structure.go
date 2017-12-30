@@ -77,10 +77,9 @@ func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 	return
 }
 
-// Length returns the size(byte) of this table.
-func (ot *OffsetTable) Length() uint32 {
-	return 12
-}
+const (
+	OffsetTableLength = uint32(12)
+)
 
 func (ot *OffsetTable) refreshField() {
 	es := uint16(0)
