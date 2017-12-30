@@ -168,17 +168,14 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 // Table is a OpenType table.
 type Table interface {
 	Tag() Tag
+	Store(w io.Writer) error
 	Length() uint32
 	CheckSum() (uint32, error)
 }
 
 func simpleCheckSum(t Table) (checkSum uint32, err error) {
 	b := bytes.NewBuffer([]byte{})
-	err = bWrite(b, t)
-	if err != nil {
-		return
-	}
-	err = padSpace(b, t.Length())
+	err = t.Store(b)
 	if err != nil {
 		return
 	}
