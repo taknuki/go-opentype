@@ -3,6 +3,7 @@ package opentype
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"unicode/utf16"
@@ -61,6 +62,103 @@ func parseName(f *os.File, offset uint32) (n *Name, err error) {
 		}
 	}
 	return
+}
+
+// Tag is table name.
+func (n *Name) Tag() Tag {
+	return String2Tag("name")
+}
+
+// Store writes binary expression of this table.
+func (n *Name) Store(w io.Writer) (err error) {
+	err = bWrite(w, &(n.Format))
+	if err != nil {
+		return
+	}
+	err = bWrite(w, &(n.Count))
+	if err != nil {
+		return
+	}
+	err = bWrite(w, &(n.StringOffset))
+	if err != nil {
+		return
+	}
+	for _, nr := range n.NameRecords {
+		err = bWrite(w, &(nr.PlatformID))
+		if err != nil {
+			return
+		}
+		err = bWrite(w, &(nr.EncodingID))
+		if err != nil {
+			return
+		}
+		err = bWrite(w, &(nr.LanguageID))
+		if err != nil {
+			return
+		}
+		err = bWrite(w, &(nr.NameID))
+		if err != nil {
+			return
+		}
+		err = bWrite(w, &(nr.Length))
+		if err != nil {
+			return
+		}
+		err = bWrite(w, &(nr.Offset))
+		if err != nil {
+			return
+		}
+	}
+	if 1 == n.Format {
+		err = bWrite(w, &(n.LangTagCount))
+		if err != nil {
+			return
+		}
+		for _, ltr := range n.LangTagRecords {
+			err = bWrite(w, &(ltr.Length))
+			if err != nil {
+				return
+			}
+			err = bWrite(w, &(ltr.Offset))
+			if err != nil {
+				return
+			}
+		}
+	}
+	for _, nr := range n.NameRecords {
+		if PlatformIDMacintosh == nr.PlatformID {
+			_, err = w.Write([]byte(nr.Value))
+			if err != nil {
+				return
+			}
+		} else {
+			for _, u := range utf16.Encode([]rune(nr.Value)) {
+				err = bWrite(w, &(u))
+				if err != nil {
+					return
+				}
+			}
+		}
+	}
+	return padSpace(w, n.Length())
+}
+
+// CheckSum for this table.
+func (n *Name) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(n)
+}
+
+// Length returns the size(byte) of this table.
+func (n *Name) Length() uint32 {
+	l := 6 + 12*n.Count
+	s := uint32(0)
+	for _, nr := range n.NameRecords {
+		s += (uint32)(nr.Length)
+	}
+	if 1 == n.Format {
+		l += 2 + 4*n.LangTagCount
+	}
+	return uint32(l) + uint32(s)
 }
 
 // NameRecord contains platform specific metadata of the OpenType Font.

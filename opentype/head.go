@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -32,4 +33,28 @@ func parseHead(f *os.File, offset uint32) (h *Head, err error) {
 	f.Seek(int64(offset), 0)
 	err = binary.Read(f, binary.BigEndian, h)
 	return
+}
+
+// Tag is table name.
+func (h *Head) Tag() Tag {
+	return String2Tag("head")
+}
+
+// Store writes binary expression of this table.
+func (h *Head) Store(w io.Writer) (err error) {
+	err = bWrite(w, h)
+	if err != nil {
+		return
+	}
+	return padSpace(w, h.Length())
+}
+
+// CheckSum for this table.
+func (h *Head) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(h)
+}
+
+// Length returns the size(byte) of this table.
+func (h *Head) Length() uint32 {
+	return uint32(54)
 }
