@@ -3,6 +3,7 @@ package opentype
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"time"
 )
@@ -116,22 +117,25 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 	if "head" == tr.Tag.String() {
 		return
 	}
-	checkSum := uint32(0)
-	blockSize := padBlocks(tr.Length)
-	blocks := make([]uint32, blockSize)
 	_, err = f.Seek((int64)(tr.Offset), 0)
 	if err != nil {
 		return
 	}
-	err = binary.Read(f, binary.BigEndian, blocks)
+	checkSum, err := calcCheckSum(f, tr.Length)
+	if checkSum != tr.CheckSum {
+		err = fmt.Errorf("Table %s has invalid checksum, expected:%d actual:%d", tr.Tag, tr.CheckSum, checkSum)
+	}
+	return
+}
+
+func calcCheckSum(r io.Reader, length uint32) (checkSum uint32, err error) {
+	blocks := make([]uint32, padBlocks(length))
+	err = binary.Read(r, binary.BigEndian, blocks)
 	if err != nil {
 		return
 	}
 	for _, block := range blocks {
 		checkSum += block
-	}
-	if checkSum != tr.CheckSum {
-		err = fmt.Errorf("Table %s has invalid checksum, expected:%d actual:%d", tr.Tag, tr.CheckSum, checkSum)
 	}
 	return
 }
