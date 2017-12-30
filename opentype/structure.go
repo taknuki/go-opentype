@@ -1,6 +1,7 @@
 package opentype
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -85,7 +86,7 @@ func (o *OffsetTable) refreshField() {
 	o.RangeShift = o.NumTables*16 - o.SearchRange
 }
 
-// TableRecord is a OpenType table.
+// TableRecord is a OpenType table record.
 type TableRecord struct {
 	Tag      Tag
 	CheckSum uint32
@@ -126,6 +127,25 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 		err = fmt.Errorf("Table %s has invalid checksum, expected:%d actual:%d", tr.Tag, tr.CheckSum, checkSum)
 	}
 	return
+}
+
+// Table is a OpenType table.
+type Table interface {
+	Length() uint32
+	CheckSum() (uint32, error)
+}
+
+func simpleCheckSum(t Table) (checkSum uint32, err error) {
+	b := bytes.NewBuffer([]byte{})
+	err = bWrite(b, t)
+	if err != nil {
+		return
+	}
+	err = padSpace(b, t.Length())
+	if err != nil {
+		return
+	}
+	return calcCheckSum(b, t.Length())
 }
 
 func calcCheckSum(r io.Reader, length uint32) (checkSum uint32, err error) {
