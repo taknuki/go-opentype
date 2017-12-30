@@ -51,17 +51,36 @@ func parseSfntVersion(f *os.File, offset int64) (t Tag, err error) {
 
 // OffsetTable is the first table of OpenType font file.
 type OffsetTable struct {
-	SfntVersion   Tag
-	NumTables     uint16
-	SearchRange   uint16
+	SfntVersion Tag
+	// Number of tables.
+	NumTables uint16
+	// (Maximum power of 2 <= numTables) x 16.
+	SearchRange uint16
+	// Log2(maximum power of 2 <= numTables).
 	EntrySelector uint16
-	RangeShift    uint16
+	// NumTables x 16-searchRange.
+	RangeShift uint16
 }
 
 func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 	ot = &OffsetTable{}
 	err = binary.Read(f, binary.BigEndian, ot)
 	return
+}
+
+func (o *OffsetTable) refreshField() {
+	es := uint16(0)
+	sr := uint16(1)
+	for {
+		if 1<<(es+1) > o.NumTables {
+			break
+		}
+		es = es + 1
+		sr = sr * 2
+	}
+	o.SearchRange = sr * 16
+	o.EntrySelector = es
+	o.RangeShift = o.NumTables*16 - o.SearchRange
 }
 
 // TableRecord is a OpenType table.
