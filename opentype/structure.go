@@ -78,7 +78,10 @@ func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 }
 
 const (
+	// OffsetTableLength : size of OffsetTable
 	OffsetTableLength = uint32(12)
+	// TableRecordLength : size of TableRecord
+	TableRecordLength = uint32(16)
 )
 
 func (ot *OffsetTable) refreshField() {
