@@ -125,6 +125,20 @@ func parseTableRecord(f *os.File, numTables uint16) (trs map[string]*TableRecord
 	return
 }
 
+func createTableRecord(t Table, offset uint32) (tr *TableRecord, err error) {
+	checkSum, err := t.CheckSum()
+	if err != nil {
+		return
+	}
+	tr = &TableRecord{
+		Tag:      t.Tag(),
+		CheckSum: checkSum,
+		Offset:   offset,
+		Length:   t.Length(),
+	}
+	return
+}
+
 func (tr *TableRecord) validate(f *os.File) (err error) {
 	if "head" == tr.Tag.String() {
 		return
@@ -142,6 +156,7 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 
 // Table is a OpenType table.
 type Table interface {
+	Tag() Tag
 	Length() uint32
 	CheckSum() (uint32, error)
 }
