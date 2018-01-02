@@ -19,6 +19,7 @@ type Font struct {
 	Fpgm         *Fpgm
 	Prep         *Prep
 	Loca         *Loca
+	Glyf         *Glyf
 }
 
 func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
@@ -88,6 +89,11 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
+	glyf, err := font.getTableRecord("glyf")
+	if err != nil {
+		return
+	}
+	font.Glyf, err = parseGlyf(f, glyf.Offset, glyf.Length, font.Loca)
 	return
 }
 

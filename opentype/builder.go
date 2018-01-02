@@ -16,6 +16,7 @@ type Builder struct {
 	Fpgm         *Fpgm
 	Prep         *Prep
 	Loca         *Loca
+	Glyf         *Glyf
 }
 
 // NewBuilder creates Builder using parsed font.
@@ -31,6 +32,7 @@ func NewBuilder(font *Font) *Builder {
 		Fpgm:         font.Fpgm,
 		Prep:         font.Prep,
 		Loca:         font.Loca,
+		Glyf:         font.Glyf,
 	}
 	for key, value := range font.tableRecords {
 		b.tableRecords[key] = value
@@ -41,7 +43,7 @@ func NewBuilder(font *Font) *Builder {
 // Build creates new font file.
 func (b *Builder) Build(writer io.Writer) (err error) {
 	for key := range b.tableRecords {
-		if "head" != key && "name" != key && "hhea" != key && "maxp" != key && "hmtx" != key && "cvt " != key && "fpgm" != key && "prep" != key && "loca" != key {
+		if "head" != key && "name" != key && "hhea" != key && "maxp" != key && "hmtx" != key && "cvt " != key && "fpgm" != key && "prep" != key && "loca" != key && "glyf" != key {
 			delete(b.tableRecords, key)
 		}
 	}
@@ -82,6 +84,10 @@ func (b *Builder) Build(writer io.Writer) (err error) {
 		return
 	}
 	offset, err = b.replaceTableRecord(b.Loca, offset)
+	if err != nil {
+		return
+	}
+	_, err = b.replaceTableRecord(b.Glyf, offset)
 	if err != nil {
 		return
 	}
