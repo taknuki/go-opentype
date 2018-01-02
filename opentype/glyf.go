@@ -36,6 +36,29 @@ func parseGlyf(f *os.File, offset, length uint32, l *Loca) (g *Glyf, err error) 
 	return
 }
 
+func (g *Glyf) filter(f []uint16) (new *Glyf) {
+	new = &Glyf{
+		data: make([][]byte, len(f)),
+	}
+	for i, j := range f {
+		new.data[i] = g.data[j]
+	}
+	return
+}
+
+func (g *Glyf) generateLoca() (l *Loca) {
+	l = &Loca{
+		indexToLocFormat: 1,
+		offsetsLong:      make([]uint32, len(g.data)),
+	}
+	offset := uint32(0)
+	for i, d := range g.data {
+		l.offsetsLong[i] = offset
+		offset += uint32(len(d))
+	}
+	return
+}
+
 // Tag is table name.
 func (g *Glyf) Tag() Tag {
 	return String2Tag("glyf")
