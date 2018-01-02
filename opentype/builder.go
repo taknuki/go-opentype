@@ -40,13 +40,20 @@ func NewBuilder(font *Font) *Builder {
 	return b
 }
 
-// Build creates new font file.
-func (b *Builder) Build(writer io.Writer) (err error) {
-	for key := range b.tableRecords {
-		if "head" != key && "name" != key && "hhea" != key && "maxp" != key && "hmtx" != key && "cvt " != key && "fpgm" != key && "prep" != key && "loca" != key && "glyf" != key {
-			delete(b.tableRecords, key)
+// Filter deletes opentype tables that is not in the list from the target of Builder.
+func (b *Builder) Filter(list []string) {
+	new := make(map[string]*TableRecord, len(list))
+	for _, tag := range list {
+		tr, ok := b.tableRecords[tag]
+		if ok {
+			new[tag] = tr
 		}
 	}
+	b.tableRecords = new
+}
+
+// Build creates new font file.
+func (b *Builder) Build(writer io.Writer) (err error) {
 	b.writer = newFontWriter(writer, b.numTables())
 	b.OffsetTable = createOffsetTable(SfntVersionTrueTypeOpenType, b.numTables())
 	offset := OffsetTableLength + TableRecordLength*(uint32)(b.numTables())
