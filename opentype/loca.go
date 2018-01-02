@@ -57,3 +57,35 @@ func parseLoca(f *os.File, offset uint32, numGlyphs uint16, indexToLocFormat int
 	}
 	return
 }
+
+// Tag is table name.
+func (l *Loca) Tag() Tag {
+	return String2Tag("loca")
+}
+
+// store writes binary expression of this table.
+func (l *Loca) store(w *errWriter) {
+	if l.IsShort() {
+		for _, o := range l.offsetsShort {
+			w.write(&(o))
+		}
+	} else {
+		for _, o := range l.offsetsLong {
+			w.write(&(o))
+		}
+	}
+	padSpace(w, l.Length())
+}
+
+// CheckSum for this table.
+func (l *Loca) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(l)
+}
+
+// Length returns the size(byte) of this table.
+func (l *Loca) Length() uint32 {
+	if l.IsShort() {
+		return uint32(2 * l.Len())
+	}
+	return uint32(4 * l.Len())
+}
