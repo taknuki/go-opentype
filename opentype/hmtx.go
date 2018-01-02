@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"io"
 	"os"
 )
 
@@ -50,21 +49,15 @@ func (h *Hmtx) Tag() Tag {
 	return String2Tag("hmtx")
 }
 
-// Store writes binary expression of this table.
-func (h *Hmtx) Store(w io.Writer) (err error) {
+// store writes binary expression of this table.
+func (h *Hmtx) store(w *errWriter) {
 	for _, hm := range h.HMetrics {
-		err = bWrite(w, hm)
-		if err != nil {
-			return
-		}
+		w.write(hm)
 	}
 	for _, lsb := range h.LeftSideBearings {
-		err = bWrite(w, &(lsb))
-		if err != nil {
-			return
-		}
+		w.write(&(lsb))
 	}
-	return padSpace(w, h.Length())
+	padSpace(w, h.Length())
 }
 
 // CheckSum for this table.

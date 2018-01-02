@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"io"
 	"os"
 )
 
@@ -63,13 +62,10 @@ func (m *Maxp) Tag() Tag {
 	return String2Tag("maxp")
 }
 
-// Store writes binary expression of this table.
-func (m *Maxp) Store(w io.Writer) (err error) {
-	err = bWrite(w, m)
-	if err != nil {
-		return
-	}
-	return padSpace(w, m.Length())
+// store writes binary expression of this table.
+func (m *Maxp) store(w *errWriter) {
+	w.write(m)
+	padSpace(w, m.Length())
 }
 
 // CheckSum for this table.

@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"io"
 	"os"
 )
 
@@ -32,15 +31,12 @@ func (fpgm *Fpgm) Tag() Tag {
 	return String2Tag("fpgm")
 }
 
-// Store writes binary expression of this table.
-func (fpgm *Fpgm) Store(w io.Writer) (err error) {
+// store writes binary expression of this table.
+func (fpgm *Fpgm) store(w *errWriter) {
 	for _, v := range fpgm.Values {
-		err = bWrite(w, &(v))
-		if err != nil {
-			return
-		}
+		w.write(&(v))
 	}
-	return padSpace(w, fpgm.Length())
+	padSpace(w, fpgm.Length())
 }
 
 // CheckSum for this table.

@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"io"
 	"os"
 )
 
@@ -32,15 +31,12 @@ func (prep *Prep) Tag() Tag {
 	return String2Tag("prep")
 }
 
-// Store writes binary expression of this table.
-func (prep *Prep) Store(w io.Writer) (err error) {
+// store writes binary expression of this table.
+func (prep *Prep) store(w *errWriter) {
 	for _, v := range prep.Values {
-		err = bWrite(w, &(v))
-		if err != nil {
-			return
-		}
+		w.write(&(v))
 	}
-	return padSpace(w, prep.Length())
+	padSpace(w, prep.Length())
 }
 
 // CheckSum for this table.

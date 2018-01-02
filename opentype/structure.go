@@ -168,15 +168,17 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 // Table is a OpenType table.
 type Table interface {
 	Tag() Tag
-	Store(w io.Writer) error
 	Length() uint32
 	CheckSum() (uint32, error)
+	store(w *errWriter)
 }
 
 func simpleCheckSum(t Table) (checkSum uint32, err error) {
 	b := bytes.NewBuffer([]byte{})
-	err = t.Store(b)
-	if err != nil {
+	w := newErrWriter(b)
+	t.store(w)
+	if w.hasErr() {
+		err = w.err
 		return
 	}
 	return calcCheckSum(b, t.Length())
@@ -208,7 +210,7 @@ func padLength(length uint32) uint32 {
 }
 
 // All tables must begin on four-byte boundries, and any remaining space between tables is padded with zeros.
-func padSpace(w io.Writer, length uint32) error {
+func padSpace(w *errWriter, length uint32) {
 	pad := padLength(length) - length
-	return bWrite(w, make([]uint8, pad))
+	w.write(make([]uint8, pad))
 }

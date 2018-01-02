@@ -2,7 +2,6 @@ package opentype
 
 import (
 	"encoding/binary"
-	"io"
 	"os"
 )
 
@@ -40,13 +39,10 @@ func (h *Head) Tag() Tag {
 	return String2Tag("head")
 }
 
-// Store writes binary expression of this table.
-func (h *Head) Store(w io.Writer) (err error) {
-	err = bWrite(w, h)
-	if err != nil {
-		return
-	}
-	return padSpace(w, h.Length())
+// store writes binary expression of this table.
+func (h *Head) store(w *errWriter) {
+	w.write(h)
+	padSpace(w, h.Length())
 }
 
 // CheckSum for this table.

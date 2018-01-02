@@ -4,7 +4,7 @@ import "io"
 
 // Builder is a font file builder.
 type Builder struct {
-	writer       *writer
+	writer       *fontWriter
 	OffsetTable  *OffsetTable
 	tableRecords map[string]*TableRecord
 	Head         *Head
@@ -43,7 +43,7 @@ func (b *Builder) Build(writer io.Writer) (err error) {
 			delete(b.tableRecords, key)
 		}
 	}
-	b.writer = newWriter(writer, b.numTables())
+	b.writer = newFontWriter(writer, b.numTables())
 	b.OffsetTable = createOffsetTable(SfntVersionTrueTypeOpenType, b.numTables())
 	offset := OffsetTableLength + TableRecordLength*(uint32)(b.numTables())
 	b.Head.CheckSumAdjustment = 0
@@ -97,45 +97,32 @@ func (b *Builder) numTables() uint16 {
 	return uint16(len(b.tableRecords))
 }
 
-type writer struct {
-	writer       io.Writer
+type fontWriter struct {
+	writer       *errWriter
 	tableRecords []*TableRecord
 	tables       []Table
 }
 
-func newWriter(w io.Writer, numTables uint16) *writer {
-	return &writer{
-		writer:       w,
+func newFontWriter(w io.Writer, numTables uint16) *fontWriter {
+	return &fontWriter{
+		writer:       newErrWriter(w),
 		tableRecords: make([]*TableRecord, 0, numTables),
 		tables:       make([]Table, 0, numTables),
 	}
 }
 
-func (w *writer) append(tr *TableRecord, t Table) {
+func (w *fontWriter) append(tr *TableRecord, t Table) {
 	w.tableRecords = append(w.tableRecords, tr)
 	w.tables = append(w.tables, t)
 }
 
-func (w *writer) write(b *Builder) (err error) {
-	err = w.bw(b.OffsetTable)
-	if err != nil {
-		return
-	}
+func (w *fontWriter) write(b *Builder) (err error) {
+	w.writer.write(b.OffsetTable)
 	for _, tr := range w.tableRecords {
-		err = w.bw(tr)
-		if err != nil {
-			return
-		}
+		w.writer.write(tr)
 	}
 	for _, t := range w.tables {
-		err = t.Store(w.writer)
-		if err != nil {
-			return
-		}
+		t.store(w.writer)
 	}
-	return
-}
-
-func (w *writer) bw(data interface{}) error {
-	return bWrite(w.writer, data)
+	return w.writer.err
 }

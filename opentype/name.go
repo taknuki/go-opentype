@@ -3,7 +3,6 @@ package opentype
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"unicode/utf16"
@@ -69,78 +68,36 @@ func (n *Name) Tag() Tag {
 	return String2Tag("name")
 }
 
-// Store writes binary expression of this table.
-func (n *Name) Store(w io.Writer) (err error) {
-	err = bWrite(w, &(n.Format))
-	if err != nil {
-		return
-	}
-	err = bWrite(w, &(n.Count))
-	if err != nil {
-		return
-	}
-	err = bWrite(w, &(n.StringOffset))
-	if err != nil {
-		return
-	}
+// store writes binary expression of this table.
+func (n *Name) store(w *errWriter) {
+	w.write(&(n.Format))
+	w.write(&(n.Count))
+	w.write(&(n.StringOffset))
 	for _, nr := range n.NameRecords {
-		err = bWrite(w, &(nr.PlatformID))
-		if err != nil {
-			return
-		}
-		err = bWrite(w, &(nr.EncodingID))
-		if err != nil {
-			return
-		}
-		err = bWrite(w, &(nr.LanguageID))
-		if err != nil {
-			return
-		}
-		err = bWrite(w, &(nr.NameID))
-		if err != nil {
-			return
-		}
-		err = bWrite(w, &(nr.Length))
-		if err != nil {
-			return
-		}
-		err = bWrite(w, &(nr.Offset))
-		if err != nil {
-			return
-		}
+		w.write(&(nr.PlatformID))
+		w.write(&(nr.EncodingID))
+		w.write(&(nr.LanguageID))
+		w.write(&(nr.NameID))
+		w.write(&(nr.Length))
+		w.write(&(nr.Offset))
 	}
 	if 1 == n.Format {
-		err = bWrite(w, &(n.LangTagCount))
-		if err != nil {
-			return
-		}
+		w.write(&(n.LangTagCount))
 		for _, ltr := range n.LangTagRecords {
-			err = bWrite(w, &(ltr.Length))
-			if err != nil {
-				return
-			}
-			err = bWrite(w, &(ltr.Offset))
-			if err != nil {
-				return
-			}
+			w.write(&(ltr.Length))
+			w.write(&(ltr.Offset))
 		}
 	}
 	for _, nr := range n.NameRecords {
 		if PlatformIDMacintosh == nr.PlatformID {
-			_, err = w.Write([]byte(nr.Value))
-			if err != nil {
-				return
-			}
+			w.writeBin([]byte(nr.Value))
 		} else {
 			for _, u := range utf16.Encode([]rune(nr.Value)) {
-				err = bWrite(w, &(u))
-				if err != nil {
-					return
-				}
+				w.write(&(u))
 			}
 		}
 	}
-	return padSpace(w, n.Length())
+	padSpace(w, n.Length())
 }
 
 // CheckSum for this table.
