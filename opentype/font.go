@@ -115,14 +115,6 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
-	cmap, err := font.getTableRecord("cmap")
-	if err != nil {
-		return
-	}
-	font.CMap, err = parseCMap(f, cmap.Offset)
-	if err != nil {
-		return
-	}
 	head, err := font.getTableRecord("head")
 	if err != nil {
 		return
@@ -155,5 +147,10 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
+	cmap, err := font.getTableRecord("cmap")
+	if err != nil {
+		return
+	}
+	font.CMap, err = parseCMap(f, cmap.Offset)
 	return
 }
