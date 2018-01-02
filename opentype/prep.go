@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -24,4 +25,30 @@ func parsePrep(f *os.File, offset, length uint32) (prep *Prep, err error) {
 		return
 	}
 	return
+}
+
+// Tag is table name.
+func (prep *Prep) Tag() Tag {
+	return String2Tag("prep")
+}
+
+// Store writes binary expression of this table.
+func (prep *Prep) Store(w io.Writer) (err error) {
+	for _, v := range prep.Values {
+		err = bWrite(w, &(v))
+		if err != nil {
+			return
+		}
+	}
+	return padSpace(w, prep.Length())
+}
+
+// CheckSum for this table.
+func (prep *Prep) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(prep)
+}
+
+// Length returns the size(byte) of this table.
+func (prep *Prep) Length() uint32 {
+	return uint32(len(prep.Values))
 }

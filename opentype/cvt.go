@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -25,4 +26,30 @@ func parseCvt(f *os.File, offset, length uint32) (c *Cvt, err error) {
 		return
 	}
 	return
+}
+
+// Tag is table name.
+func (c *Cvt) Tag() Tag {
+	return String2Tag("cvt ")
+}
+
+// Store writes binary expression of this table.
+func (c *Cvt) Store(w io.Writer) (err error) {
+	for _, v := range c.Values {
+		err = bWrite(w, &(v))
+		if err != nil {
+			return
+		}
+	}
+	return padSpace(w, c.Length())
+}
+
+// CheckSum for this table.
+func (c *Cvt) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(c)
+}
+
+// Length returns the size(byte) of this table.
+func (c *Cvt) Length() uint32 {
+	return uint32(2 * len(c.Values))
 }

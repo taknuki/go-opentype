@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -55,4 +56,32 @@ func parseMaxp(f *os.File, offset uint32) (m *Maxp, err error) {
 	f.Seek(int64(offset), 0)
 	err = binary.Read(f, binary.BigEndian, m)
 	return
+}
+
+// Tag is table name.
+func (m *Maxp) Tag() Tag {
+	return String2Tag("maxp")
+}
+
+// Store writes binary expression of this table.
+func (m *Maxp) Store(w io.Writer) (err error) {
+	err = bWrite(w, m)
+	if err != nil {
+		return
+	}
+	return padSpace(w, m.Length())
+}
+
+// CheckSum for this table.
+func (m *Maxp) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(m)
+}
+
+// Length returns the size(byte) of this table.
+func (m *Maxp) Length() uint32 {
+	// version 0.5
+	if 0x00005000 == m.Version {
+		return uint32(6)
+	}
+	return uint32(32)
 }

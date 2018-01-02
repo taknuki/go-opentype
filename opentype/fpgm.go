@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -24,4 +25,30 @@ func parseFpgm(f *os.File, offset, length uint32) (fpgm *Fpgm, err error) {
 		return
 	}
 	return
+}
+
+// Tag is table name.
+func (fpgm *Fpgm) Tag() Tag {
+	return String2Tag("fpgm")
+}
+
+// Store writes binary expression of this table.
+func (fpgm *Fpgm) Store(w io.Writer) (err error) {
+	for _, v := range fpgm.Values {
+		err = bWrite(w, &(v))
+		if err != nil {
+			return
+		}
+	}
+	return padSpace(w, fpgm.Length())
+}
+
+// CheckSum for this table.
+func (fpgm *Fpgm) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(fpgm)
+}
+
+// Length returns the size(byte) of this table.
+func (fpgm *Fpgm) Length() uint32 {
+	return uint32(len(fpgm.Values))
 }

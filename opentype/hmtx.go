@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"io"
 	"os"
 )
 
@@ -42,4 +43,36 @@ func parseHmtx(f *os.File, offset uint32, numGlyphs, numberOfHMetrics uint16) (h
 		}
 	}
 	return
+}
+
+// Tag is table name.
+func (h *Hmtx) Tag() Tag {
+	return String2Tag("hmtx")
+}
+
+// Store writes binary expression of this table.
+func (h *Hmtx) Store(w io.Writer) (err error) {
+	for _, hm := range h.HMetrics {
+		err = bWrite(w, hm)
+		if err != nil {
+			return
+		}
+	}
+	for _, lsb := range h.LeftSideBearings {
+		err = bWrite(w, &(lsb))
+		if err != nil {
+			return
+		}
+	}
+	return padSpace(w, h.Length())
+}
+
+// CheckSum for this table.
+func (h *Hmtx) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(h)
+}
+
+// Length returns the size(byte) of this table.
+func (h *Hmtx) Length() uint32 {
+	return uint32(4*len(h.HMetrics) + 2*len(h.LeftSideBearings))
 }

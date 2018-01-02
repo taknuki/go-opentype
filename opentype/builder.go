@@ -1,9 +1,6 @@
 package opentype
 
-import (
-	"fmt"
-	"io"
-)
+import "io"
 
 // Builder is a font file builder.
 type Builder struct {
@@ -12,6 +9,12 @@ type Builder struct {
 	tableRecords map[string]*TableRecord
 	Head         *Head
 	Name         *Name
+	Hhea         *Hhea
+	Maxp         *Maxp
+	Hmtx         *Hmtx
+	Cvt          *Cvt
+	Fpgm         *Fpgm
+	Prep         *Prep
 }
 
 // NewBuilder creates Builder using parsed font.
@@ -20,6 +23,12 @@ func NewBuilder(font *Font) *Builder {
 		tableRecords: make(map[string]*TableRecord, len(font.tableRecords)),
 		Head:         font.Head,
 		Name:         font.Name,
+		Hhea:         font.Hhea,
+		Maxp:         font.Maxp,
+		Hmtx:         font.Hmtx,
+		Cvt:          font.Cvt,
+		Fpgm:         font.Fpgm,
+		Prep:         font.Prep,
 	}
 	for key, value := range font.tableRecords {
 		b.tableRecords[key] = value
@@ -30,7 +39,7 @@ func NewBuilder(font *Font) *Builder {
 // Build creates new font file.
 func (b *Builder) Build(writer io.Writer) (err error) {
 	for key := range b.tableRecords {
-		if "head" != key && "name" != key {
+		if "head" != key && "name" != key && "hhea" != key && "maxp" != key && "hmtx" != key && "cvt " != key && "fpgm" != key && "prep" != key {
 			delete(b.tableRecords, key)
 		}
 	}
@@ -39,9 +48,34 @@ func (b *Builder) Build(writer io.Writer) (err error) {
 	offset := OffsetTableLength + TableRecordLength*(uint32)(b.numTables())
 	b.Head.CheckSumAdjustment = 0
 	offset, err = b.replaceTableRecord(b.Head, offset)
-	fmt.Println(offset)
+	if err != nil {
+		return
+	}
 	offset, err = b.replaceTableRecord(b.Name, offset)
-	fmt.Println(offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Hhea, offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Maxp, offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Hmtx, offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Cvt, offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Fpgm, offset)
+	if err != nil {
+		return
+	}
+	offset, err = b.replaceTableRecord(b.Prep, offset)
 	if err != nil {
 		return
 	}
