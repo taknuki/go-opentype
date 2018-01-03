@@ -2,6 +2,7 @@ package opentype
 
 import (
 	"encoding/binary"
+	"fmt"
 	"os"
 )
 
@@ -27,10 +28,16 @@ type Head struct {
 	GlyphDataFormat    int16
 }
 
-func parseHead(f *os.File, offset uint32) (h *Head, err error) {
+func parseHead(f *os.File, offset, checkSum uint32) (h *Head, err error) {
 	h = &Head{}
 	f.Seek(int64(offset), 0)
 	err = binary.Read(f, binary.BigEndian, h)
+	if err == nil {
+		actual, err := h.CheckSum()
+		if err == nil && checkSum != actual {
+			err = fmt.Errorf("Table head has invalid checksum, expected:%d actual:%d", checkSum, actual)
+		}
+	}
 	return
 }
 
@@ -47,7 +54,11 @@ func (h *Head) store(w *errWriter) {
 
 // CheckSum for this table.
 func (h *Head) CheckSum() (checkSum uint32, err error) {
-	return simpleCheckSum(h)
+	bk := h.CheckSumAdjustment
+	h.CheckSumAdjustment = 0
+	checkSum, err = simpleCheckSum(h)
+	h.CheckSumAdjustment = bk
+	return
 }
 
 // Length returns the size(byte) of this table.

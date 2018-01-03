@@ -104,7 +104,7 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return err
 	})
 	p.parse("head", func(tr *TableRecord) error {
-		font.Head, err = parseHead(f, tr.Offset)
+		font.Head, err = parseHead(f, tr.Offset, tr.CheckSum)
 		return err
 	})
 	p.parse("hhea", func(tr *TableRecord) error {
