@@ -1,147 +1,59 @@
 package opentype
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 // Builder is a font file builder.
 type Builder struct {
-	writer       *fontWriter
-	OffsetTable  *OffsetTable
-	tableRecords map[string]*TableRecord
-	Head         *Head
-	Name         *Name
-	Hhea         *Hhea
-	Maxp         *Maxp
-	Hmtx         *Hmtx
-	Cvt          *Cvt
-	Fpgm         *Fpgm
-	Prep         *Prep
-	Loca         *Loca
-	Glyf         *Glyf
+	tables []Table
 }
 
-// NewBuilder creates Builder using parsed font.
-func NewBuilder(font *Font) *Builder {
-	b := &Builder{
-		tableRecords: make(map[string]*TableRecord, len(font.tableRecords)),
-		Head:         font.Head,
-		Name:         font.Name,
-		Hhea:         font.Hhea,
-		Maxp:         font.Maxp,
-		Hmtx:         font.Hmtx,
-		Cvt:          font.Cvt,
-		Fpgm:         font.Fpgm,
-		Prep:         font.Prep,
-		Loca:         font.Loca,
-		Glyf:         font.Glyf,
+// NewBuilder creates Builder.
+func NewBuilder() *Builder {
+	return &Builder{
+		tables: make([]Table, 0),
 	}
-	for key, value := range font.tableRecords {
-		b.tableRecords[key] = value
-	}
-	return b
 }
 
-// Filter deletes opentype tables that is not in the list from the target of Builder.
-func (b *Builder) Filter(list []string) {
-	new := make(map[string]*TableRecord, len(list))
-	for _, tag := range list {
-		tr, ok := b.tableRecords[tag]
-		if ok {
-			new[tag] = tr
-		}
+// AddTable to Builder. If table is nil, that is ignored and returns false.
+func (b *Builder) AddTable(t Table) bool {
+	if t != nil {
+		b.tables = append(b.tables, t)
+		return true
 	}
-	b.tableRecords = new
+	return false
+}
+
+// AddTables to Builder. If table is nil, that is ignored.
+func (b *Builder) AddTables(tables []Table) {
+	for _, t := range tables {
+		b.AddTable(t)
+	}
 }
 
 // Build creates new font file.
 func (b *Builder) Build(writer io.Writer) (err error) {
-	b.writer = newFontWriter(writer, b.numTables())
-	b.OffsetTable = createOffsetTable(SfntVersionTrueTypeOpenType, b.numTables())
-	offset := b.OffsetTable.Length() + TableRecordLength*(uint32)(b.numTables())
-	b.Head.CheckSumAdjustment = 0
-	offset, err = b.replaceTableRecord(b.Head, offset)
-	if err != nil {
-		return
+	numTables := len(b.tables)
+	offsetTable := createOffsetTable(SfntVersionTrueTypeOpenType, uint16(numTables))
+	offset := offsetTable.Length() + TableRecordLength*uint32(numTables)
+	tableRecords := make(map[string]*TableRecord, numTables)
+	for _, t := range b.tables {
+		tr, err := createTableRecord(t, offset)
+		if err != nil {
+			return fmt.Errorf("failed to create TableRecord: %s cause: %s", t.Tag(), err)
+		}
+		tableRecords[t.Tag().String()] = tr
+		offset += padLength(tr.Length)
 	}
-	offset, err = b.replaceTableRecord(b.Name, offset)
-	if err != nil {
-		return
+	w := newErrWriter(writer)
+	w.write(offsetTable)
+	for _, t := range b.tables {
+		w.write(tableRecords[t.Tag().String()])
 	}
-	offset, err = b.replaceTableRecord(b.Hhea, offset)
-	if err != nil {
-		return
+	for _, t := range b.tables {
+		t.store(w)
 	}
-	offset, err = b.replaceTableRecord(b.Maxp, offset)
-	if err != nil {
-		return
-	}
-	offset, err = b.replaceTableRecord(b.Hmtx, offset)
-	if err != nil {
-		return
-	}
-	offset, err = b.replaceTableRecord(b.Cvt, offset)
-	if err != nil {
-		return
-	}
-	offset, err = b.replaceTableRecord(b.Fpgm, offset)
-	if err != nil {
-		return
-	}
-	offset, err = b.replaceTableRecord(b.Prep, offset)
-	if err != nil {
-		return
-	}
-	offset, err = b.replaceTableRecord(b.Loca, offset)
-	if err != nil {
-		return
-	}
-	_, err = b.replaceTableRecord(b.Glyf, offset)
-	if err != nil {
-		return
-	}
-	return b.writer.write(b)
-}
-
-func (b *Builder) replaceTableRecord(t Table, offset uint32) (nextOffset uint32, err error) {
-	tr, err := createTableRecord(t, offset)
-	if err != nil {
-		return
-	}
-	b.tableRecords[t.Tag().String()] = tr
-	nextOffset = offset + padLength(tr.Length)
-	b.writer.append(tr, t)
-	return
-}
-
-func (b *Builder) numTables() uint16 {
-	return uint16(len(b.tableRecords))
-}
-
-type fontWriter struct {
-	writer       *errWriter
-	tableRecords []*TableRecord
-	tables       []Table
-}
-
-func newFontWriter(w io.Writer, numTables uint16) *fontWriter {
-	return &fontWriter{
-		writer:       newErrWriter(w),
-		tableRecords: make([]*TableRecord, 0, numTables),
-		tables:       make([]Table, 0, numTables),
-	}
-}
-
-func (w *fontWriter) append(tr *TableRecord, t Table) {
-	w.tableRecords = append(w.tableRecords, tr)
-	w.tables = append(w.tables, t)
-}
-
-func (w *fontWriter) write(b *Builder) (err error) {
-	w.writer.write(b.OffsetTable)
-	for _, tr := range w.tableRecords {
-		w.writer.write(tr)
-	}
-	for _, t := range w.tables {
-		t.store(w.writer)
-	}
-	return w.writer.err
+	return fmt.Errorf("failed to create font file: %s", w.err)
 }
