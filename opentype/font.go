@@ -116,16 +116,6 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return err
 	})
 	p.parse("hmtx", func(tr *TableRecord) error {
-		// missed := make([]string, 0)
-		// if font.Maxp == nil {
-		// 	missed = append(missed, "maxp")
-		// }
-		// if font.Hhea == nil {
-		// 	missed = append(missed, "hhea")
-		// }
-		// if len(missed) > 0 {
-		// 	return fmt.Errorf("requires %s", strings.Join(missed, ","))
-		// }
 		err = tableRequired(font.Maxp, font.Hhea)
 		if err != nil {
 			return err
@@ -162,4 +152,41 @@ func (font *Font) Tables() []Table {
 		}
 	}
 	return ret
+}
+
+// FilterGlyf creates new Font with filtered glyf.
+// You should set filter[0] = 0, that points to the “missing character”, or this method inserts it.
+func (font *Font) FilterGlyf(filter []uint16) *Font {
+	new := &Font{
+		offsetTable:  font.offsetTable,
+		tableRecords: font.tableRecords,
+		Name:         font.Name,
+		CMap:         font.CMap,
+		Head:         font.Head,
+		Hhea:         font.Hhea,
+		Maxp:         font.Maxp,
+		Hmtx:         font.Hmtx,
+		Cvt:          font.Cvt,
+		Fpgm:         font.Fpgm,
+		Prep:         font.Prep,
+		Loca:         font.Loca,
+		Glyf:         font.Glyf,
+	}
+	var f []uint16
+	if 0 == filter[0] {
+		f = filter
+	} else {
+		f = make([]uint16, len(filter)+1)
+		f[0] = 0
+		for i, gid := range filter {
+			f[i+1] = gid
+		}
+	}
+	new.Glyf = new.Glyf.filter(f)
+	new.Loca = new.Glyf.generateLoca()
+	new.Hmtx = new.Hmtx.filter(f)
+	new.Maxp.NumGlyphs = uint16(len(f))
+	new.Hhea.NumberOfHMetrics = uint16(len(new.Hmtx.HMetrics))
+	new.Head.IndexToLocFormat = new.Loca.indexToLocFormat
+	return new
 }

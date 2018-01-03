@@ -40,6 +40,7 @@ func (l *Loca) Get(i int) (offset uint32) {
 }
 
 func parseLoca(f *os.File, offset uint32, numGlyphs uint16, indexToLocFormat int16) (l *Loca, err error) {
+	// In order to compute the length of the last glyph element, there is an extra entry after the last valid index.
 	size := numGlyphs + 1
 	l = &Loca{
 		indexToLocFormat: indexToLocFormat,

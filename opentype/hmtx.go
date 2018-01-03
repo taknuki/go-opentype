@@ -44,6 +44,35 @@ func parseHmtx(f *os.File, offset uint32, numGlyphs, numberOfHMetrics uint16) (h
 	return
 }
 
+func (h *Hmtx) filter(f []uint16) *Hmtx {
+	th := uint16(len(h.HMetrics))
+	numHM := 0
+	for i, gid := range f {
+		if gid < th {
+			numHM = i + 1
+		}
+	}
+	new := &Hmtx{
+		HMetrics:         make([]*LongHorMetric, 0, numHM),
+		LeftSideBearings: make([]int16, 0, len(f)-numHM),
+	}
+	for i, gid := range f {
+		if i < numHM {
+			if gid < th {
+				new.HMetrics = append(new.HMetrics, h.HMetrics[gid])
+			} else {
+				new.HMetrics = append(new.HMetrics, &LongHorMetric{
+					AdvanceWidth: 0,
+					Lsb:          h.LeftSideBearings[gid-th],
+				})
+			}
+		} else {
+			new.LeftSideBearings = append(new.LeftSideBearings, h.LeftSideBearings[gid-th])
+		}
+	}
+	return new
+}
+
 // Tag is table name.
 func (h *Hmtx) Tag() Tag {
 	return String2Tag("hmtx")
