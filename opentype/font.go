@@ -22,14 +22,6 @@ type Font struct {
 	Glyf         *Glyf
 }
 
-func (f *Font) getTableRecord(tag string) (*TableRecord, error) {
-	tr, ok := f.tableRecords[tag]
-	if !ok {
-		return nil, fmt.Errorf("%s table record is not found", tag)
-	}
-	return tr, nil
-}
-
 // ParseFont returns the Font instance from the font file.
 func ParseFont(f *os.File) (*Font, error) {
 	return parseFont(f, 0)
@@ -57,43 +49,36 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
-	cvt, err := font.getTableRecord("cvt ")
-	if err != nil {
-		return
-	}
-	font.Cvt, err = parseCvt(f, cvt.Offset, cvt.Length)
-	if err != nil {
-		return
-	}
-	fpgm, err := font.getTableRecord("fpgm")
-	if err != nil {
-		return
-	}
-	font.Fpgm, err = parseFpgm(f, fpgm.Offset, fpgm.Length)
-	if err != nil {
-		return
-	}
-	prep, err := font.getTableRecord("prep")
-	if err != nil {
-		return
-	}
-	font.Prep, err = parsePrep(f, prep.Offset, prep.Length)
-	if err != nil {
-		return
-	}
-	loca, err := font.getTableRecord("loca")
-	if err != nil {
-		return
-	}
-	font.Loca, err = parseLoca(f, loca.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
-	if err != nil {
-		return
-	}
-	glyf, err := font.getTableRecord("glyf")
-	if err != nil {
-		return
-	}
-	font.Glyf, err = parseGlyf(f, glyf.Offset, glyf.Length, font.Loca)
+	p := newOptionalFontParser(font.tableRecords)
+	p.parse("cvt ", func(tr *TableRecord) error {
+		font.Cvt, err = parseCvt(f, tr.Offset, tr.Length)
+		return err
+	})
+	p.parse("fpgm", func(tr *TableRecord) error {
+		font.Fpgm, err = parseFpgm(f, tr.Offset, tr.Length)
+		return err
+	})
+	p.parse("prep", func(tr *TableRecord) error {
+		font.Prep, err = parsePrep(f, tr.Offset, tr.Length)
+		return err
+	})
+	p.parse("loca", func(tr *TableRecord) error {
+		err = tableRequired(font.Maxp, font.Head)
+		if err != nil {
+			return err
+		}
+		font.Loca, err = parseLoca(f, tr.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
+		return err
+	})
+	p.parse("glyf", func(tr *TableRecord) error {
+		err = tableRequired(font.Loca)
+		if err != nil {
+			return err
+		}
+		font.Glyf, err = parseGlyf(f, tr.Offset, tr.Length, font.Loca)
+		return err
+	})
+	err = p.err()
 	return
 }
 
@@ -113,50 +98,68 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 	if err != nil {
 		return
 	}
-	name, err := font.getTableRecord("name")
-	if err != nil {
-		return
-	}
-	font.Name, err = parseName(f, name.Offset)
-	if err != nil {
-		return
-	}
-	head, err := font.getTableRecord("head")
-	if err != nil {
-		return
-	}
-	font.Head, err = parseHead(f, head.Offset)
-	if err != nil {
-		return
-	}
-	hhea, err := font.getTableRecord("hhea")
-	if err != nil {
-		return
-	}
-	font.Hhea, err = parseHhea(f, hhea.Offset)
-	if err != nil {
-		return
-	}
-	maxp, err := font.getTableRecord("maxp")
-	if err != nil {
-		return
-	}
-	font.Maxp, err = parseMaxp(f, maxp.Offset)
-	if err != nil {
-		return
-	}
-	hmtx, err := font.getTableRecord("hmtx")
-	if err != nil {
-		return
-	}
-	font.Hmtx, err = parseHmtx(f, hmtx.Offset, font.Maxp.NumGlyphs, font.Hhea.NumberOfHMetrics)
-	if err != nil {
-		return
-	}
-	cmap, err := font.getTableRecord("cmap")
-	if err != nil {
-		return
-	}
-	font.CMap, err = parseCMap(f, cmap.Offset)
+	p := newOptionalFontParser(font.tableRecords)
+	p.parse("name", func(tr *TableRecord) error {
+		font.Name, err = parseName(f, tr.Offset)
+		return err
+	})
+	p.parse("head", func(tr *TableRecord) error {
+		font.Head, err = parseHead(f, tr.Offset)
+		return err
+	})
+	p.parse("hhea", func(tr *TableRecord) error {
+		font.Hhea, err = parseHhea(f, tr.Offset)
+		return err
+	})
+	p.parse("maxp", func(tr *TableRecord) error {
+		font.Maxp, err = parseMaxp(f, tr.Offset)
+		return err
+	})
+	p.parse("hmtx", func(tr *TableRecord) error {
+		// missed := make([]string, 0)
+		// if font.Maxp == nil {
+		// 	missed = append(missed, "maxp")
+		// }
+		// if font.Hhea == nil {
+		// 	missed = append(missed, "hhea")
+		// }
+		// if len(missed) > 0 {
+		// 	return fmt.Errorf("requires %s", strings.Join(missed, ","))
+		// }
+		err = tableRequired(font.Maxp, font.Hhea)
+		if err != nil {
+			return err
+		}
+		font.Hmtx, err = parseHmtx(f, tr.Offset, font.Maxp.NumGlyphs, font.Hhea.NumberOfHMetrics)
+		return err
+	})
+	p.parse("cmap", func(tr *TableRecord) error {
+		font.CMap, err = parseCMap(f, tr.Offset)
+		return err
+	})
+	err = p.err()
 	return
+}
+
+// Tables are OpenType tables that are not nil.
+func (font *Font) Tables() []Table {
+	tables := []Table{
+		font.Head,
+		font.Name,
+		font.Hhea,
+		font.Maxp,
+		font.Hmtx,
+		font.Cvt,
+		font.Fpgm,
+		font.Prep,
+		font.Loca,
+		font.Glyf,
+	}
+	ret := make([]Table, 0, len(tables))
+	for _, t := range tables {
+		if t != nil {
+			ret = append(ret, t)
+		}
+	}
+	return ret
 }
