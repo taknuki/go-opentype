@@ -32,11 +32,15 @@ func parseHead(f *os.File, offset, checkSum uint32) (h *Head, err error) {
 	h = &Head{}
 	f.Seek(int64(offset), 0)
 	err = binary.Read(f, binary.BigEndian, h)
-	if err == nil {
-		actual, err := h.CheckSum()
-		if err == nil && checkSum != actual {
-			err = fmt.Errorf("Table head has invalid checksum, expected:%d actual:%d", checkSum, actual)
-		}
+	if err != nil {
+		return
+	}
+	actual, err := h.CheckSum()
+	if err != nil {
+		return
+	}
+	if checkSum != actual {
+		err = fmt.Errorf("Table head has invalid checksum, expected:%d actual:%d", checkSum, actual)
 	}
 	return
 }
