@@ -56,7 +56,7 @@ func (b *Builder) Filter(list []string) {
 func (b *Builder) Build(writer io.Writer) (err error) {
 	b.writer = newFontWriter(writer, b.numTables())
 	b.OffsetTable = createOffsetTable(SfntVersionTrueTypeOpenType, b.numTables())
-	offset := OffsetTableLength + TableRecordLength*(uint32)(b.numTables())
+	offset := b.OffsetTable.Length() + TableRecordLength*(uint32)(b.numTables())
 	b.Head.CheckSumAdjustment = 0
 	offset, err = b.replaceTableRecord(b.Head, offset)
 	if err != nil {

@@ -86,12 +86,10 @@ func createOffsetTable(sfntVersion Tag, numTables uint16) *OffsetTable {
 	return ot
 }
 
-const (
-	// OffsetTableLength : size of OffsetTable
-	OffsetTableLength = uint32(12)
-	// TableRecordLength : size of TableRecord
-	TableRecordLength = uint32(16)
-)
+// Length returns the size(byte) of this table.
+func (ot *OffsetTable) Length() uint32 {
+	return uint32(12)
+}
 
 func (ot *OffsetTable) refreshField() {
 	es := uint16(0)
@@ -116,6 +114,11 @@ type TableRecord struct {
 	Offset uint32
 	Length uint32
 }
+
+const (
+	// TableRecordLength : size of TableRecord
+	TableRecordLength = uint32(16)
+)
 
 func parseTableRecord(f *os.File, numTables uint16) (trs map[string]*TableRecord, err error) {
 	trs = make(map[string]*TableRecord)
