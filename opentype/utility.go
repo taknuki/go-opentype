@@ -42,6 +42,13 @@ func (e *errWriter) hasErr() bool {
 	return e.err != nil
 }
 
+func (e *errWriter) errorf(format string) error {
+	if e.hasErr() {
+		return fmt.Errorf(format, e.err)
+	}
+	return nil
+}
+
 type optionalFontParser struct {
 	tableRecords map[string]*TableRecord
 	errs         []string

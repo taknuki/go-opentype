@@ -181,7 +181,7 @@ func simpleCheckSum(t Table) (checkSum uint32, err error) {
 	w := newErrWriter(b)
 	t.store(w)
 	if w.hasErr() {
-		err = w.err
+		err = w.errorf("failed to calculate checksum: %s")
 		return
 	}
 	return calcCheckSum(b, t.Length())
