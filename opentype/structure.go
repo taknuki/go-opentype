@@ -73,8 +73,9 @@ type OffsetTable struct {
 
 func parseOffsetTable(f *os.File) (ot *OffsetTable, err error) {
 	ot = &OffsetTable{}
-	err = binary.Read(f, binary.BigEndian, ot)
-	return
+	r := newErrReader(f)
+	r.read(ot)
+	return ot, r.errorf("failed to parse offset table: %s")
 }
 
 func createOffsetTable(sfntVersion Tag, numTables uint16) *OffsetTable {
@@ -126,6 +127,7 @@ func parseTableRecord(f *os.File, numTables uint16) (trs map[string]*TableRecord
 		tr := &TableRecord{}
 		err = binary.Read(f, binary.BigEndian, tr)
 		if err != nil {
+			err = fmt.Errorf("failed to parse table record: %s", err)
 			return
 		}
 		trs[tr.Tag.String()] = tr

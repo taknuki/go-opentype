@@ -7,19 +7,17 @@ import (
 
 // Font is the opentype font.
 type Font struct {
-	offsetTable  *OffsetTable
-	tableRecords map[string]*TableRecord
-	Name         *Name
-	CMap         *CMap
-	Head         *Head
-	Hhea         *Hhea
-	Maxp         *Maxp
-	Hmtx         *Hmtx
-	Cvt          *Cvt
-	Fpgm         *Fpgm
-	Prep         *Prep
-	Loca         *Loca
-	Glyf         *Glyf
+	Name *Name
+	CMap *CMap
+	Head *Head
+	Hhea *Hhea
+	Maxp *Maxp
+	Hmtx *Hmtx
+	Cvt  *Cvt
+	Fpgm *Fpgm
+	Prep *Prep
+	Loca *Loca
+	Glyf *Glyf
 }
 
 // ParseFont returns the Font instance from the font file.
@@ -44,61 +42,56 @@ func parseFont(f *os.File, offset int64) (*Font, error) {
 	}
 }
 
-func parseTrueTypeFont(f *os.File) (font *Font, err error) {
-	font, err = parseCommonTable(f)
-	if err != nil {
-		return
-	}
-	p := newOptionalFontParser(font.tableRecords)
-	p.parse("cvt ", true, func(tr *TableRecord) error {
-		font.Cvt, err = parseCvt(f, tr.Offset, tr.Length)
-		return err
-	})
-	p.parse("fpgm", true, func(tr *TableRecord) error {
-		font.Fpgm, err = parseFpgm(f, tr.Offset, tr.Length)
-		return err
-	})
-	p.parse("prep", true, func(tr *TableRecord) error {
-		font.Prep, err = parsePrep(f, tr.Offset, tr.Length)
-		return err
-	})
-	p.parse("loca", false, func(tr *TableRecord) error {
-		err = tableRequired(font.Maxp, font.Head)
-		if err != nil {
+func parseTrueTypeFont(f *os.File) (*Font, error) {
+	return parseOpenTypeTable(f, func(font *Font, p *optionalFontParser) {
+		p.parse("cvt ", true, func(tr *TableRecord) (err error) {
+			font.Cvt, err = parseCvt(f, tr.Offset, tr.Length)
 			return err
-		}
-		font.Loca, err = parseLoca(f, tr.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
-		return err
-	})
-	p.parse("glyf", false, func(tr *TableRecord) error {
-		err = tableRequired(font.Loca)
-		if err != nil {
+		})
+		p.parse("fpgm", true, func(tr *TableRecord) (err error) {
+			font.Fpgm, err = parseFpgm(f, tr.Offset, tr.Length)
 			return err
-		}
-		font.Glyf, err = parseGlyf(f, tr.Offset, tr.Length, font.Loca)
-		return err
+		})
+		p.parse("prep", true, func(tr *TableRecord) (err error) {
+			font.Prep, err = parsePrep(f, tr.Offset, tr.Length)
+			return err
+		})
+		p.parse("loca", false, func(tr *TableRecord) (err error) {
+			err = tableRequired(font.Maxp, font.Head)
+			if err != nil {
+				return err
+			}
+			font.Loca, err = parseLoca(f, tr.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
+			return err
+		})
+		p.parse("glyf", false, func(tr *TableRecord) (err error) {
+			err = tableRequired(font.Loca)
+			if err != nil {
+				return err
+			}
+			font.Glyf, err = parseGlyf(f, tr.Offset, tr.Length, font.Loca)
+			return err
+		})
 	})
-	err = p.err()
-	return
 }
 
-func parseCFFFont(f *os.File) (font *Font, err error) {
-	font, err = parseCommonTable(f)
-	// TODO CFF specific
-	return
+func parseCFFFont(f *os.File) (*Font, error) {
+	return parseOpenTypeTable(f, func(font *Font, p *optionalFontParser) {
+		// TODO CFF specific
+	})
 }
 
-func parseCommonTable(f *os.File) (font *Font, err error) {
+func parseOpenTypeTable(f *os.File, parser func(font *Font, p *optionalFontParser)) (font *Font, err error) {
 	font = &Font{}
-	font.offsetTable, err = parseOffsetTable(f)
+	offsetTable, err := parseOffsetTable(f)
 	if err != nil {
 		return
 	}
-	font.tableRecords, err = parseTableRecord(f, font.offsetTable.NumTables)
+	tableRecords, err := parseTableRecord(f, offsetTable.NumTables)
 	if err != nil {
 		return
 	}
-	p := newOptionalFontParser(font.tableRecords)
+	p := newOptionalFontParser(tableRecords)
 	p.parse("name", false, func(tr *TableRecord) error {
 		font.Name, err = parseName(f, tr.Offset)
 		return err
@@ -127,8 +120,8 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		font.CMap, err = parseCMap(f, tr.Offset)
 		return err
 	})
-	err = p.err()
-	return
+	parser(font, p)
+	return font, p.err()
 }
 
 // Tables are OpenType tables that are not nil.
@@ -158,19 +151,17 @@ func (font *Font) Tables() []Table {
 // You should set filter[0] = 0, that points to the “missing character”, or this method inserts it.
 func (font *Font) FilterGlyf(filter []uint16) (*Font, error) {
 	new := &Font{
-		offsetTable:  font.offsetTable,
-		tableRecords: font.tableRecords,
-		Name:         font.Name,
-		CMap:         font.CMap,
-		Head:         font.Head,
-		Hhea:         font.Hhea,
-		Maxp:         font.Maxp,
-		Hmtx:         font.Hmtx,
-		Cvt:          font.Cvt,
-		Fpgm:         font.Fpgm,
-		Prep:         font.Prep,
-		Loca:         font.Loca,
-		Glyf:         font.Glyf,
+		Name: font.Name,
+		CMap: font.CMap,
+		Head: font.Head,
+		Hhea: font.Hhea,
+		Maxp: font.Maxp,
+		Hmtx: font.Hmtx,
+		Cvt:  font.Cvt,
+		Fpgm: font.Fpgm,
+		Prep: font.Prep,
+		Loca: font.Loca,
+		Glyf: font.Glyf,
 	}
 	f := make([]uint16, 0, len(filter)+1)
 	maxGID := uint16(0)
