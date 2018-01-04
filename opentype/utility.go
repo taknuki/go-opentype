@@ -7,15 +7,32 @@ import (
 	"strings"
 )
 
-type errWriter struct {
-	w   io.Writer
+type errIO struct {
 	err error
+}
+
+func (e errIO) hasErr() bool {
+	return e.err != nil
+}
+
+func (e errIO) errorf(format string) error {
+	if e.hasErr() {
+		return fmt.Errorf(format, e.err)
+	}
+	return nil
+}
+
+type errWriter struct {
+	errIO
+	w io.Writer
 }
 
 func newErrWriter(w io.Writer) *errWriter {
 	return &errWriter{
-		w:   w,
-		err: nil,
+		errIO: errIO{
+			err: nil,
+		},
+		w: w,
 	}
 }
 
@@ -38,15 +55,30 @@ func (e *errWriter) writeBin(b []byte) {
 	_, e.err = e.w.Write(b)
 }
 
-func (e *errWriter) hasErr() bool {
-	return e.err != nil
+type errReader struct {
+	errIO
+	r io.Reader
 }
 
-func (e *errWriter) errorf(format string) error {
-	if e.hasErr() {
-		return fmt.Errorf(format, e.err)
+func newErrReader(r io.Reader) *errReader {
+	return &errReader{
+		errIO: errIO{
+			err: nil,
+		},
+		r: r,
 	}
-	return nil
+}
+
+func (e *errReader) read(data interface{}) {
+	if e.hasErr() {
+		return
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			e.err = fmt.Errorf("panic: %s", err)
+		}
+	}()
+	e.err = binary.Read(e.r, binary.BigEndian, data)
 }
 
 type optionalFontParser struct {
