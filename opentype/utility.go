@@ -61,10 +61,12 @@ func newOptionalFontParser(tableRecords map[string]*TableRecord) *optionalFontPa
 	}
 }
 
-func (p *optionalFontParser) parse(tag string, parser func(tr *TableRecord) error) {
+func (p *optionalFontParser) parse(tag string, optional bool, parser func(tr *TableRecord) error) {
 	tr, ok := p.tableRecords[tag]
 	if !ok {
-		p.errs = append(p.errs, fmt.Sprintf("%s: table record is not found", tag))
+		if !optional {
+			p.errs = append(p.errs, fmt.Sprintf("%s: table record is not found", tag))
+		}
 		return
 	}
 	err := parser(tr)

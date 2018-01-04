@@ -50,19 +50,19 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 		return
 	}
 	p := newOptionalFontParser(font.tableRecords)
-	p.parse("cvt ", func(tr *TableRecord) error {
+	p.parse("cvt ", true, func(tr *TableRecord) error {
 		font.Cvt, err = parseCvt(f, tr.Offset, tr.Length)
 		return err
 	})
-	p.parse("fpgm", func(tr *TableRecord) error {
+	p.parse("fpgm", true, func(tr *TableRecord) error {
 		font.Fpgm, err = parseFpgm(f, tr.Offset, tr.Length)
 		return err
 	})
-	p.parse("prep", func(tr *TableRecord) error {
+	p.parse("prep", true, func(tr *TableRecord) error {
 		font.Prep, err = parsePrep(f, tr.Offset, tr.Length)
 		return err
 	})
-	p.parse("loca", func(tr *TableRecord) error {
+	p.parse("loca", false, func(tr *TableRecord) error {
 		err = tableRequired(font.Maxp, font.Head)
 		if err != nil {
 			return err
@@ -70,7 +70,7 @@ func parseTrueTypeFont(f *os.File) (font *Font, err error) {
 		font.Loca, err = parseLoca(f, tr.Offset, font.Maxp.NumGlyphs, font.Head.IndexToLocFormat)
 		return err
 	})
-	p.parse("glyf", func(tr *TableRecord) error {
+	p.parse("glyf", false, func(tr *TableRecord) error {
 		err = tableRequired(font.Loca)
 		if err != nil {
 			return err
@@ -99,23 +99,23 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		return
 	}
 	p := newOptionalFontParser(font.tableRecords)
-	p.parse("name", func(tr *TableRecord) error {
+	p.parse("name", false, func(tr *TableRecord) error {
 		font.Name, err = parseName(f, tr.Offset)
 		return err
 	})
-	p.parse("head", func(tr *TableRecord) error {
+	p.parse("head", false, func(tr *TableRecord) error {
 		font.Head, err = parseHead(f, tr.Offset, tr.CheckSum)
 		return err
 	})
-	p.parse("hhea", func(tr *TableRecord) error {
+	p.parse("hhea", false, func(tr *TableRecord) error {
 		font.Hhea, err = parseHhea(f, tr.Offset)
 		return err
 	})
-	p.parse("maxp", func(tr *TableRecord) error {
+	p.parse("maxp", false, func(tr *TableRecord) error {
 		font.Maxp, err = parseMaxp(f, tr.Offset)
 		return err
 	})
-	p.parse("hmtx", func(tr *TableRecord) error {
+	p.parse("hmtx", false, func(tr *TableRecord) error {
 		err = tableRequired(font.Maxp, font.Hhea)
 		if err != nil {
 			return err
@@ -123,7 +123,7 @@ func parseCommonTable(f *os.File) (font *Font, err error) {
 		font.Hmtx, err = parseHmtx(f, tr.Offset, font.Maxp.NumGlyphs, font.Hhea.NumberOfHMetrics)
 		return err
 	})
-	p.parse("cmap", func(tr *TableRecord) error {
+	p.parse("cmap", true, func(tr *TableRecord) error {
 		font.CMap, err = parseCMap(f, tr.Offset)
 		return err
 	})
@@ -156,7 +156,7 @@ func (font *Font) Tables() []Table {
 
 // FilterGlyf creates new Font with filtered glyf.
 // You should set filter[0] = 0, that points to the “missing character”, or this method inserts it.
-func (font *Font) FilterGlyf(filter []uint16) *Font {
+func (font *Font) FilterGlyf(filter []uint16) (*Font, error) {
 	new := &Font{
 		offsetTable:  font.offsetTable,
 		tableRecords: font.tableRecords,
@@ -172,15 +172,19 @@ func (font *Font) FilterGlyf(filter []uint16) *Font {
 		Loca:         font.Loca,
 		Glyf:         font.Glyf,
 	}
-	var f []uint16
-	if 0 == filter[0] {
-		f = filter
-	} else {
-		f = make([]uint16, len(filter)+1)
-		f[0] = 0
-		for i, gid := range filter {
-			f[i+1] = gid
+	f := make([]uint16, 0, len(filter)+1)
+	maxGID := uint16(0)
+	if 0 != filter[0] {
+		f = append(f, filter[0])
+	}
+	for _, gid := range filter {
+		f = append(f, gid)
+		if maxGID < gid {
+			maxGID = gid
 		}
+	}
+	if maxGID > font.Maxp.NumGlyphs-1 {
+		return nil, fmt.Errorf("filtering glyph failed: request(%d) exceeds maximum glyph id(%d)", maxGID, font.Maxp.NumGlyphs-1)
 	}
 	new.Glyf = new.Glyf.filter(f)
 	new.Loca = new.Glyf.generateLoca()
@@ -188,5 +192,5 @@ func (font *Font) FilterGlyf(filter []uint16) *Font {
 	new.Maxp.NumGlyphs = uint16(len(f))
 	new.Hhea.NumberOfHMetrics = uint16(len(new.Hmtx.HMetrics))
 	new.Head.IndexToLocFormat = new.Loca.indexToLocFormat
-	return new
+	return new, nil
 }
