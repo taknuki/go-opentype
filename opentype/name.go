@@ -118,6 +118,16 @@ func (n *Name) Length() uint32 {
 	return uint32(l) + uint32(s)
 }
 
+// Get returns name value specified by Name Record keys.
+func (n *Name) Get(platformID PlatformID, encodingID EncodingID, languageID LanguageID, nameID NameID) (value string) {
+	for _, nr := range n.NameRecords {
+		if nr.PlatformID == platformID && nr.EncodingID == encodingID && nr.LanguageID == languageID && nr.NameID == nameID {
+			return nr.Value
+		}
+	}
+	return
+}
+
 // NameRecord contains platform specific metadata of the OpenType Font.
 type NameRecord struct {
 	// Platform ID.
