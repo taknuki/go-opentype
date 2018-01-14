@@ -7,13 +7,15 @@ import (
 
 // Builder is a font file builder.
 type Builder struct {
-	tables []Table
+	sfntVersion Tag
+	tables      []Table
 }
 
 // NewBuilder creates Builder.
-func NewBuilder() *Builder {
+func NewBuilder(sfntVersion Tag) *Builder {
 	return &Builder{
-		tables: make([]Table, 0),
+		sfntVersion: sfntVersion,
+		tables:      make([]Table, 0),
 	}
 }
 
@@ -44,7 +46,7 @@ func (b *Builder) WithTables(tables []Table) *Builder {
 // Build creates new font file.
 func (b *Builder) Build(writer io.Writer) (err error) {
 	numTables := len(b.tables)
-	offsetTable := createOffsetTable(SfntVersionTrueTypeOpenType, uint16(numTables))
+	offsetTable := createOffsetTable(b.sfntVersion, uint16(numTables))
 	offset := offsetTable.Length() + TableRecordLength*uint32(numTables)
 	tableRecords := make(map[string]*TableRecord, numTables)
 	for _, t := range b.tables {
