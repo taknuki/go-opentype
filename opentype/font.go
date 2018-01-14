@@ -7,17 +7,18 @@ import (
 
 // Font is the opentype font.
 type Font struct {
-	Name *Name
-	CMap *CMap
-	Head *Head
-	Hhea *Hhea
-	Maxp *Maxp
-	Hmtx *Hmtx
-	Cvt  *Cvt
-	Fpgm *Fpgm
-	Prep *Prep
-	Loca *Loca
-	Glyf *Glyf
+	SfntVersion Tag
+	Name        *Name
+	CMap        *CMap
+	Head        *Head
+	Hhea        *Hhea
+	Maxp        *Maxp
+	Hmtx        *Hmtx
+	Cvt         *Cvt
+	Fpgm        *Fpgm
+	Prep        *Prep
+	Loca        *Loca
+	Glyf        *Glyf
 }
 
 // ParseFont returns the Font instance from the font file.
@@ -87,6 +88,7 @@ func parseOpenTypeTable(f *os.File, parser func(font *Font, p *optionalFontParse
 	if err != nil {
 		return
 	}
+	font.SfntVersion = offsetTable.SfntVersion
 	tableRecords, err := parseTableRecord(f, offsetTable.NumTables)
 	if err != nil {
 		return
