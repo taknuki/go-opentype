@@ -172,9 +172,15 @@ func (tr *TableRecord) validate(f *os.File) (err error) {
 
 // Table is a OpenType table.
 type Table interface {
+	// Tag is table name.
 	Tag() Tag
+	// Length returns the size(byte) of this table.
 	Length() uint32
+	// CheckSum for this table.
 	CheckSum() (uint32, error)
+	// Exists returns true if this is not nil.
+	Exists() bool
+	// store writes binary expression of this table.
 	store(w *errWriter)
 }
 

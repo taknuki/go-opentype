@@ -69,3 +69,8 @@ func (h *Head) CheckSum() (checkSum uint32, err error) {
 func (h *Head) Length() uint32 {
 	return uint32(54)
 }
+
+// Exists returns true if this is not nil.
+func (h *Head) Exists() bool {
+	return h != nil
+}

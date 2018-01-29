@@ -142,7 +142,7 @@ func (font *Font) Tables() []Table {
 	}
 	ret := make([]Table, 0, len(tables))
 	for _, t := range tables {
-		if t != nil {
+		if t.Exists() {
 			ret = append(ret, t)
 		}
 	}

@@ -100,3 +100,8 @@ func (h *Hmtx) CheckSum() (checkSum uint32, err error) {
 func (h *Hmtx) Length() uint32 {
 	return uint32(4*len(h.HMetrics) + 2*len(h.LeftSideBearings))
 }
+
+// Exists returns true if this is not nil.
+func (h *Hmtx) Exists() bool {
+	return h != nil
+}

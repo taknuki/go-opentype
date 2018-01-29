@@ -28,7 +28,7 @@ func (b *Builder) WithTable(t Table) *Builder {
 			tables = append(tables, cur)
 		}
 	}
-	if t != nil {
+	if t.Exists() {
 		tables = append(tables, t)
 	}
 	b.tables = tables

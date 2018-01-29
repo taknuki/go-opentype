@@ -90,3 +90,8 @@ func (l *Loca) Length() uint32 {
 	}
 	return uint32(4 * l.Len())
 }
+
+// Exists returns true if this is not nil.
+func (l *Loca) Exists() bool {
+	return l != nil
+}

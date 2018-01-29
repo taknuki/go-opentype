@@ -48,3 +48,8 @@ func (prep *Prep) CheckSum() (checkSum uint32, err error) {
 func (prep *Prep) Length() uint32 {
 	return uint32(len(prep.Values))
 }
+
+// Exists returns true if this is not nil.
+func (prep *Prep) Exists() bool {
+	return prep != nil
+}

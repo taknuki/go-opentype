@@ -49,3 +49,8 @@ func (c *Cvt) CheckSum() (checkSum uint32, err error) {
 func (c *Cvt) Length() uint32 {
 	return uint32(2 * len(c.Values))
 }
+
+// Exists returns true if this is not nil.
+func (c *Cvt) Exists() bool {
+	return c != nil
+}

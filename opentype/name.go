@@ -118,6 +118,11 @@ func (n *Name) Length() uint32 {
 	return uint32(l) + uint32(s)
 }
 
+// Exists returns true if this is not nil.
+func (n *Name) Exists() bool {
+	return n != nil
+}
+
 // Get returns name value specified by Name Record keys.
 func (n *Name) Get(platformID PlatformID, encodingID EncodingID, languageID LanguageID, nameID NameID) (value string) {
 	for _, nr := range n.NameRecords {

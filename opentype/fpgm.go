@@ -48,3 +48,8 @@ func (fpgm *Fpgm) CheckSum() (checkSum uint32, err error) {
 func (fpgm *Fpgm) Length() uint32 {
 	return uint32(len(fpgm.Values))
 }
+
+// Exists returns true if this is not nil.
+func (fpgm *Fpgm) Exists() bool {
+	return fpgm != nil
+}

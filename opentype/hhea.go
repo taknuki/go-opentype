@@ -55,3 +55,8 @@ func (h *Hhea) CheckSum() (checkSum uint32, err error) {
 func (h *Hhea) Length() uint32 {
 	return uint32(36)
 }
+
+// Exists returns true if this is not nil.
+func (h *Hhea) Exists() bool {
+	return h != nil
+}

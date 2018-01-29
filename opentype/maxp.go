@@ -81,3 +81,8 @@ func (m *Maxp) Length() uint32 {
 	}
 	return uint32(32)
 }
+
+// Exists returns true if this is not nil.
+func (m *Maxp) Exists() bool {
+	return m != nil
+}

@@ -87,3 +87,8 @@ func (g *Glyf) Length() uint32 {
 	}
 	return l
 }
+
+// Exists returns true if this is not nil.
+func (g *Glyf) Exists() bool {
+	return g != nil
+}
