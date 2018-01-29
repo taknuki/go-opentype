@@ -48,6 +48,39 @@ func parseCMap(f *os.File, offset uint32) (cm *CMap, err error) {
 	return
 }
 
+// Tag is table name.
+func (cm *CMap) Tag() Tag {
+	return String2Tag("cmap")
+}
+
+// store writes binary expression of this table.
+func (cm *CMap) store(w *errWriter) {
+	w.write(&(cm.Header))
+	for _, er := range cm.EncodingRecords {
+		er.store(w)
+	}
+	padSpace(w, cm.Length())
+}
+
+// CheckSum for this table.
+func (cm *CMap) CheckSum() (checkSum uint32, err error) {
+	return simpleCheckSum(cm)
+}
+
+// Length returns the size(byte) of this table.
+func (cm *CMap) Length() uint32 {
+	l := uint32(4) // CMapHeader
+	for _, er := range cm.EncodingRecords {
+		l += er.Length()
+	}
+	return l
+}
+
+// Exists returns true if this is not nil.
+func (cm *CMap) Exists() bool {
+	return cm != nil
+}
+
 // CMapHeader is a header block of a "cmap" table.
 type CMapHeader struct {
 	Version   uint16
@@ -62,15 +95,30 @@ type EncodingRecord struct {
 	Subtable   EncodingRecordSubtable
 }
 
-// GetCMap returns the resolved cmap of the encoding record subtable.
-func (er *EncodingRecord) GetCMap() map[int32]uint16 {
+// CMap is the resolved cmap of the encoding record subtable.
+func (er *EncodingRecord) CMap() map[int32]uint16 {
 	return er.Subtable.GetCMap()
+}
+
+// Length returns the size(byte) of this EncodingRecord.
+func (er *EncodingRecord) Length() uint32 {
+	return uint32(8) + er.Subtable.GetLength()
+}
+
+// store writes binary expression of this EncodingRecord.
+func (er *EncodingRecord) store(w *errWriter) {
+	w.write(&(er.PlatformID))
+	w.write(&(er.EncodingID))
+	w.write(&(er.Offset))
+	er.Subtable.store(w)
 }
 
 // EncodingRecordSubtable is a character-to-glyph-index mapping table.
 type EncodingRecordSubtable interface {
 	GetFormatNumber() EncodingRecordSubtableFormatNumber
 	GetCMap() map[int32]uint16
+	GetLength() uint32
+	store(w *errWriter)
 }
 
 // EncodingRecordSubtableFormatNumber is a format specifier of encoding record subtables.
@@ -145,6 +193,14 @@ func parseEncodingRecordSubtableFormat0(f *os.File) (st *EncodingRecordSubtableF
 	return
 }
 
+func (st *EncodingRecordSubtableFormat0) store(w *errWriter) {
+	writeEncodingRecordSubtableFormatNumber(w, st.GetFormatNumber())
+	w.write(&(st.Length))
+	w.write(&(st.Language))
+	w.write(st.GlyphIDArray)
+	return
+}
+
 // GetFormatNumber returns the the format number of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat0) GetFormatNumber() EncodingRecordSubtableFormatNumber {
 	return EncodingRecordSubtableFormatNumber0
@@ -153,6 +209,11 @@ func (st *EncodingRecordSubtableFormat0) GetFormatNumber() EncodingRecordSubtabl
 // GetCMap returns the resolved cmap of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat0) GetCMap() map[int32]uint16 {
 	return st.cmap
+}
+
+// GetLength returns the length of this subtable.
+func (st *EncodingRecordSubtableFormat0) GetLength() uint32 {
+	return uint32(st.Length)
 }
 
 // EncodingRecordSubtableFormat2 is useful for the national character code standards used for Japanese, Chinese, and Korean characters.
@@ -261,6 +322,15 @@ func (st *EncodingRecordSubtableFormat2) getGID(f *os.File, addr int64, offset u
 	return
 }
 
+func (st *EncodingRecordSubtableFormat2) store(w *errWriter) {
+	// w.writeEncodingRecordSubtableFormatNumber(st.GetFormatNumber())
+	// w.write(&(st.Length))
+	// w.write(&(st.Language))
+	// w.write(st.SubHeaderKeys)
+	// for i, fc := range
+	// return
+}
+
 // GetFormatNumber returns the the format number of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat2) GetFormatNumber() EncodingRecordSubtableFormatNumber {
 	return EncodingRecordSubtableFormatNumber2
@@ -269,6 +339,11 @@ func (st *EncodingRecordSubtableFormat2) GetFormatNumber() EncodingRecordSubtabl
 // GetCMap returns the resolved cmap of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat2) GetCMap() map[int32]uint16 {
 	return st.cmap
+}
+
+// GetLength returns the length of this subtable.
+func (st *EncodingRecordSubtableFormat2) GetLength() uint32 {
+	return uint32(st.Length)
 }
 
 // EncodingRecordSubtableFormat4 is the Microsoft standard character-to-glyph-index mapping table for fonts that support Unicode BMP characters.
@@ -395,6 +470,9 @@ func (st *EncodingRecordSubtableFormat4) getGID(f *os.File, i uint16, c uint16) 
 	return
 }
 
+func (st *EncodingRecordSubtableFormat4) store(w *errWriter) {
+}
+
 // GetFormatNumber returns the the format number of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat4) GetFormatNumber() EncodingRecordSubtableFormatNumber {
 	return EncodingRecordSubtableFormatNumber4
@@ -403,6 +481,11 @@ func (st *EncodingRecordSubtableFormat4) GetFormatNumber() EncodingRecordSubtabl
 // GetCMap returns the resolved cmap of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat4) GetCMap() map[int32]uint16 {
 	return st.cmap
+}
+
+// GetLength returns the length of this subtable.
+func (st *EncodingRecordSubtableFormat4) GetLength() uint32 {
+	return uint32(st.Length)
 }
 
 // EncodingRecordSubtableFormat6 is Trimmed table mapping
@@ -448,6 +531,9 @@ func parseEncodingRecordSubtableFormat6(f *os.File) (st *EncodingRecordSubtableF
 	return
 }
 
+func (st *EncodingRecordSubtableFormat6) store(w *errWriter) {
+}
+
 // GetFormatNumber returns the the format number of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat6) GetFormatNumber() EncodingRecordSubtableFormatNumber {
 	return EncodingRecordSubtableFormatNumber6
@@ -456,6 +542,11 @@ func (st *EncodingRecordSubtableFormat6) GetFormatNumber() EncodingRecordSubtabl
 // GetCMap returns the resolved cmap of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat6) GetCMap() map[int32]uint16 {
 	return st.cmap
+}
+
+// GetLength returns the length of this subtable.
+func (st *EncodingRecordSubtableFormat6) GetLength() uint32 {
+	return uint32(st.Length)
 }
 
 // EncodingRecordSubtableFormat12 is the Microsoft standard character-to-glyph-index mapping table for fonts supporting Unicode supplementary-plane characters (U+10000 to U+10FFFF).
@@ -517,6 +608,9 @@ func (st *EncodingRecordSubtableFormat12) createCMap() (cmap map[int32]uint16) {
 	return
 }
 
+func (st *EncodingRecordSubtableFormat12) store(w *errWriter) {
+}
+
 // GetFormatNumber returns the the format number of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat12) GetFormatNumber() EncodingRecordSubtableFormatNumber {
 	return EncodingRecordSubtableFormatNumber12
@@ -525,4 +619,14 @@ func (st *EncodingRecordSubtableFormat12) GetFormatNumber() EncodingRecordSubtab
 // GetCMap returns the resolved cmap of the encoding record subtable.
 func (st *EncodingRecordSubtableFormat12) GetCMap() map[int32]uint16 {
 	return st.cmap
+}
+
+// GetLength returns the length of this subtable.
+func (st *EncodingRecordSubtableFormat12) GetLength() uint32 {
+	return uint32(st.Length)
+}
+
+func writeEncodingRecordSubtableFormatNumber(e *errWriter, n EncodingRecordSubtableFormatNumber) {
+	b := []byte{byte(n / 256), byte(n % 256)}
+	e.writeBin(b)
 }
