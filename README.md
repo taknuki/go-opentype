@@ -1,3 +1,3 @@
 # go-opentype
 
-golang OpenType parser.
+golang OpenType library for parsing, editing, and storing fonts.

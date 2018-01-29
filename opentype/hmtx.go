@@ -15,6 +15,8 @@ type LongHorMetric struct {
 
 // Hmtx is a "hmtx" table.
 // The horizontal metrics ('hmtx') table provides glyph advance widths and left side bearings.
+// Left side bearings: The horizontal distance from the base position to the left edge of the glyph's bounding box.
+// Adovance width: The horizontal distance from the current base position and the next base position.
 type Hmtx struct {
 	// Paired advance width and left side bearing values for each glyph. Records are indexed by glyph ID.
 	HMetrics []*LongHorMetric
